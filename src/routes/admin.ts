@@ -114,16 +114,36 @@ admin.post('/experiment/:experimentId/participants', async (c) => {
 
   if (!Array.isArray(participants)) return c.json({ error: 'participants must be array' }, 400);
 
+  // Pre-fetch treatments for this experiment to resolve names to UUIDs
+  const [treatments] = await db.query<RowDataPacket[]>(
+    'SELECT id, name FROM treatments WHERE experimentId = ?',
+    [experimentId]
+  );
+  const treatmentMap = new Map<string, string>();
+  for (const t of treatments) {
+    treatmentMap.set(t.id, t.id);           // UUID -> UUID
+    treatmentMap.set(t.name, t.id);         // name -> UUID
+  }
+
   let created = 0;
+  const errors: string[] = [];
   for (const p of participants) {
+    const resolvedTreatmentId = treatmentMap.get(p.treatmentId);
+    if (!resolvedTreatmentId) {
+      errors.push(`Unknown treatment "${p.treatmentId}" for participant ${p.id || p.authcode}`);
+      continue;
+    }
     const id = p.id || crypto.randomUUID();
     await db.query(
       'INSERT INTO participants (id, authcode, experimentId, treatmentId) VALUES (?, ?, ?, ?)',
-      [id, p.authcode, experimentId, p.treatmentId]
+      [id, p.authcode, experimentId, resolvedTreatmentId]
     );
     created++;
   }
 
+  if (errors.length > 0) {
+    return c.json({ success: created > 0, count: created, errors }, errors.length === participants.length ? 400 : 207);
+  }
   return c.json({ success: true, count: created });
 });
 
