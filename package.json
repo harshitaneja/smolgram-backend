@@ -1,0 +1,21 @@
+{
+  "name": "smolgram-backend",
+  "module": "index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun run --watch src/index.ts",
+    "start": "bun run src/index.ts",
+    "seed": "bun run src/seed.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.11",
+    "hono": "^4.12.8",
+    "mysql2": "^3.20.0"
+  }
+}
